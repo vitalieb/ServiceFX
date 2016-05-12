@@ -1,0 +1,438 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package servicecentermanagementfx.view;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.VBox;
+import javafx.util.Duration;
+import servicecentermanagementfx.DataSource;
+import servicecentermanagementfx.datamodels.ContractorsViewModel;
+
+/**
+ * FXML Controller class
+ *
+ * @author Vitalie
+ */
+public class ContractorsViewController implements Initializable {
+
+    private short isCompany() {
+        return 1;
+    }
+
+    private short isPerson() {
+        return 0;
+    }
+    HashMap contractorDetails = new HashMap();
+    private final ObservableList<ContractorsViewModel> tableData = FXCollections.observableArrayList();
+    private Integer idOfContratorBeingEdited;
+    @FXML
+    Label dbActionsLabel;
+    @FXML
+    TextField shortName;
+    @FXML
+    TextField fullName;
+    @FXML
+    TextField fiscalCode;
+    @FXML
+    TextField vat;
+    @FXML
+    TextField bankName;
+    @FXML
+    TextField bankAccount;
+    @FXML
+    TextField phoneNumber;
+    @FXML
+    TextField address;
+    @FXML
+    TextField phoneNumberPerson;
+    @FXML
+    TextField addressPerson;
+    @FXML
+    TextField name;
+    @FXML
+    TextField surname;
+    @FXML
+    Button add;
+    @FXML
+    Button edit;
+    @FXML
+    Button remove;
+    @FXML
+    TableView table;
+    @FXML
+    RadioButton all;
+
+    @FXML
+    RadioButton persons;
+    @FXML
+    ToggleButton company;
+    @FXML
+    ToggleButton person;
+    @FXML
+    VBox companyForm;
+    @FXML
+    VBox personForm;
+    @FXML
+    Button addOrUpdatePersonButton;
+    @FXML
+    Button addOrUpdateCompanyButton;
+
+    @FXML
+    private void companyToggleButtonAction() {
+        showCompanies();
+        //companyForm.setVisible(true);
+        //personForm.setVisible(false);
+    }
+
+    @FXML
+    private void personToggleButtonAction() {
+        showPersons();
+        //companyForm.setVisible(false);
+        //personForm.setVisible(true);
+    }
+
+    @FXML
+    private void fillFormWithData() {
+        int currentId;
+        ContractorsViewModel contractor = (ContractorsViewModel) table.getSelectionModel().getSelectedItem();
+        currentId = contractor.getId();
+        HashMap contractorFromDB = new HashMap();
+        contractorFromDB = getCurrentContractorFromDatabase(currentId);
+        if ((int) contractorFromDB.get("isCompany") == 1) {
+            personForm.setVisible(false);
+            companyForm.setVisible(true);
+            clearCompanyForm();
+            shortName.setText((String) contractorFromDB.get("shortName"));
+            fullName.setText((String) contractorFromDB.get("fullName"));
+            fiscalCode.setText((String) contractorFromDB.get("fiscalCode"));
+            vat.setText((String) contractorFromDB.get("VAT"));
+            bankName.setText((String) contractorFromDB.get("bankName"));
+            bankAccount.setText((String) contractorFromDB.get("bankAccount"));
+            phoneNumber.setText((String) contractorFromDB.get("phoneNumber"));
+            address.setText((String) contractorFromDB.get("address"));
+            addOrUpdateCompanyButton.setText("Update");
+        } else {
+            companyForm.setVisible(false);
+            personForm.setVisible(true);
+            clearPersonForm();
+            name.setText((String) contractorFromDB.get("name"));
+            surname.setText((String) contractorFromDB.get("surname"));
+            phoneNumberPerson.setText((String) contractorFromDB.get("phoneNumber"));
+            addressPerson.setText((String) contractorFromDB.get("address"));
+            addOrUpdatePersonButton.setText("Update");
+        }
+        emptyIdOfContractorBeingEdited();
+
+    }
+
+    public void emptyIdOfContractorBeingEdited() {
+        if (idOfContratorBeingEdited != null) {
+            idOfContratorBeingEdited = null;
+        }
+    }
+    
+    
+    public HashMap getCurrentContractorFromDatabase(int contractorID) {
+        Map<String, Object> contractorFromDB = new HashMap<>();
+        try {
+            DataSource mds = DataSource.getInstance();
+            Connection databaseConnection = mds.getConnection();
+            Properties props = new Properties();
+            props.load(new FileInputStream("jdbc.properties"));
+            String db = props.getProperty("jdbc.db");
+            String sql = "";
+            sql = "SELECT * FROM `" + db + "`.`contractors` WHERE  idcontractors=" + contractorID + ";";
+            Statement stat = databaseConnection.createStatement();
+            ResultSet resultSet = stat.executeQuery(sql);
+            while (resultSet.next()) {
+                contractorFromDB.put("idcontractors", resultSet.getInt(1));
+                contractorFromDB.put("isCompany", resultSet.getInt(2));
+                contractorFromDB.put("phoneNumber", resultSet.getString(3));
+                contractorFromDB.put("address", resultSet.getString(4));
+                contractorFromDB.put("shortName", resultSet.getString(5));
+                contractorFromDB.put("fullName", resultSet.getString(6));
+                contractorFromDB.put("fiscalCode", resultSet.getString(7));
+                contractorFromDB.put("VAT", resultSet.getString(8));
+                contractorFromDB.put("bankName", resultSet.getString(9));
+                contractorFromDB.put("bankAccount", resultSet.getString(10));
+                contractorFromDB.put("name", resultSet.getString(11));
+                contractorFromDB.put("surname", resultSet.getString(12));
+            }
+            resultSet.close();
+            stat.close();
+            databaseConnection.close();
+            mds.closeConnection();
+        } catch (SQLException ex) {
+            Logger.getLogger(ContractorsViewController.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(ContractorsViewController.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return (HashMap) contractorFromDB;
+    }
+
+    @FXML
+    private void showCompanies() {
+        //loading content for companies view
+        updateTableData(true);
+
+        //creating columns
+        TableColumn idColumn = new TableColumn("ID");
+        idColumn.setMinWidth(Double.valueOf("40"));
+        idColumn.setMaxWidth(Double.valueOf("60"));
+        idColumn.setCellValueFactory(
+                new PropertyValueFactory<>("id"));
+        TableColumn shortNameColumn = new TableColumn("Short name");
+        shortNameColumn.setCellValueFactory(
+                new PropertyValueFactory<>("shortName"));
+
+        TableColumn fiscalCodeColumn = new TableColumn("Fiscal code");
+        fiscalCodeColumn.setCellValueFactory(
+                new PropertyValueFactory<>("fiscalCode"));
+
+        TableColumn vatColumn = new TableColumn("VAT");
+        vatColumn.setCellValueFactory(
+                new PropertyValueFactory<>("vat"));
+
+        //removing all current columns
+        table.getColumns().clear();
+        //adding required columns
+        table.getColumns().addAll(idColumn, shortNameColumn, fiscalCodeColumn, vatColumn);
+        //loading data to table
+        table.setItems(tableData);
+    }
+
+    @FXML
+    private void showPersons() {
+        //loading content for persons view
+        updateTableData(false);
+        //creating columns
+        TableColumn idColumn = new TableColumn("ID");
+        idColumn.setMinWidth(Double.valueOf("40"));
+        idColumn.setMaxWidth(Double.valueOf("60"));
+        idColumn.setCellValueFactory(
+                new PropertyValueFactory<>("id"));
+        TableColumn nameColumn = new TableColumn("Name");
+        nameColumn.setCellValueFactory(
+                new PropertyValueFactory<>("name"));
+        TableColumn surNameColumn = new TableColumn("Surname");
+        surNameColumn.setCellValueFactory(
+                new PropertyValueFactory<>("surname"));
+        TableColumn phoneNumberColumn = new TableColumn("Phone number");
+        phoneNumberColumn.setCellValueFactory(
+                new PropertyValueFactory<>("phoneNumber"));
+        //removing all current columns
+        table.getColumns().clear();
+        //adding required columns
+        table.getColumns().addAll(idColumn, nameColumn, surNameColumn, phoneNumberColumn);
+        //loading data to table
+        table.setItems(tableData);
+    }
+
+    private void clearCompanyForm() {
+
+        for (Node node : companyForm.getChildren()) {
+            if (node instanceof TextField) {
+                ((TextField) node).setText("");
+            }
+        }
+    }
+
+    private void clearPersonForm() {
+
+        for (Node node : personForm.getChildren()) {
+            if (node instanceof TextField) {
+                ((TextField) node).setText("");
+            }
+        }
+    }
+
+    @FXML
+    private void newCompanyButtonActionHandler() {
+        showCompanies();
+        companyForm.setVisible(true);
+        clearCompanyForm();
+        personForm.setVisible(false);
+        emptyIdOfContractorBeingEdited();
+        addOrUpdateCompanyButton.setText("Add");
+    }
+
+    @FXML
+    private void newPersonButtonActionHandler() {
+        showPersons();
+        personForm.setVisible(true);
+        clearPersonForm();
+        companyForm.setVisible(false);
+        emptyIdOfContractorBeingEdited();
+        addOrUpdatePersonButton.setText("Add");
+    }
+
+    @FXML
+    private void emptyFields() {
+        if (companyForm.isVisible()) {
+            clearCompanyForm();
+        } else if (personForm.isVisible()) {
+            clearPersonForm();
+        }
+    }
+
+    @FXML
+    private void addButtonActionHandler() throws IOException {
+        if (companyForm.isVisible()) {
+            contractorDetails.put("isCompany", isCompany());
+            contractorDetails.put("phoneNumber", phoneNumber.getText());
+            contractorDetails.put("address", address.getText());
+            contractorDetails.put("shortName", shortName.getText());
+            contractorDetails.put("fullName", fullName.getText());
+            contractorDetails.put("fiscalCode", fiscalCode.getText());
+            contractorDetails.put("vat", vat.getText());
+            contractorDetails.put("bankName", bankName.getText());
+            contractorDetails.put("bankAccount", bankAccount.getText());
+//            if (idOfContratorBeingEdited == null) {
+            addDataToDatabase(contractorDetails);
+//            }
+            contractorDetails.clear();
+            showCompanies();
+            addOrUpdateCompanyButton.setText("Update");
+        } else if (personForm.isVisible()) {
+            contractorDetails.put("isCompany", isPerson());
+            contractorDetails.put("phoneNumber", phoneNumberPerson.getText());
+            contractorDetails.put("address", addressPerson.getText());
+            contractorDetails.put("name", name.getText());
+            contractorDetails.put("surname", surname.getText());
+//            if (idOfContratorBeingEdited == null) {
+            addDataToDatabase(contractorDetails);
+//            }
+            contractorDetails.clear();
+            showPersons();
+            addOrUpdatePersonButton.setText("Update");
+        }
+    }
+
+    public void addDataToDatabase(HashMap contractorDetails) {
+
+        try {
+            DataSource mds = DataSource.getInstance();
+            Connection databaseConnection = mds.getConnection();
+
+            Properties props = new Properties();
+            props.load(new FileInputStream("jdbc.properties"));
+            String db = props.getProperty("jdbc.db");
+            String sql = "";
+            if (companyForm.isVisible()) {
+                sql = "INSERT INTO `" + db + "`.`contractors` (`isCompany`, `phoneNumber`, `address`, `shortName`, `fullName`, `fiscalCode`, `VAT`, `bankName`, `bankAccount`) VALUES ('" + contractorDetails.get("isCompany") + "', '" + contractorDetails.get("phoneNumber") + "', '" + contractorDetails.get("address") + "', '" + contractorDetails.get("shortName") + "', '" + contractorDetails.get("fullName") + "', '" + contractorDetails.get("fiscalCode") + "', '" + contractorDetails.get("vat") + "', '" + contractorDetails.get("bankName") + "', '" + contractorDetails.get("bankAccount") + "');";
+            } else if (personForm.isVisible()) {
+                sql = "INSERT INTO `" + db + "`.`contractors` (`isCompany`, `phoneNumber`, `address`, `name`, `surname`) VALUES ('" + contractorDetails.get("isCompany") + "', '" + contractorDetails.get("phoneNumber") + "', '" + contractorDetails.get("address") + "', '" + contractorDetails.get("name") + "', '" + contractorDetails.get("surname") + "');";
+            }
+            Statement stat = databaseConnection.createStatement();
+            Integer insertSuccess = stat.executeUpdate(sql);
+            sql = "SELECT LAST_INSERT_ID()";
+            ResultSet resultSet = stat.executeQuery(sql);
+//            String lastID = resultSet.getString(1);
+//            System.out.println(lastID);
+            while (resultSet.next()) {
+                idOfContratorBeingEdited = resultSet.getInt(1);
+            }
+            if (insertSuccess != 0) {
+                Timeline timeline = new Timeline(
+                        new KeyFrame(Duration.seconds(0),
+                                new EventHandler<ActionEvent>() {
+                                    @Override
+                                    public void handle(ActionEvent actionEvent) {
+                                        dbActionsLabel.setText("Added!");
+                                    }
+                                }
+                        ),
+                        new KeyFrame(Duration.seconds(3),
+                                new EventHandler<ActionEvent>() {
+                                    @Override
+                                    public void handle(ActionEvent actionEvent) {
+                                        dbActionsLabel.setText("");
+                                    }
+                                })
+                );
+                timeline.setCycleCount(1);
+                timeline.play();
+
+                resultSet.close();
+                stat.close();
+                databaseConnection.close();
+                mds.closeConnection();
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(ContractorsViewController.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(ContractorsViewController.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+    }
+
+    @Override
+    public void initialize(URL url, ResourceBundle rb) {
+        showCompanies();
+
+    }
+
+    public void updateTableData(boolean isCompany) {
+        try {
+            tableData.clear();
+            DataSource mds = DataSource.getInstance();
+            Connection databaseConnection = mds.getConnection();
+
+            Properties props = new Properties();
+            props.load(new FileInputStream("jdbc.properties"));
+            String db = props.getProperty("jdbc.db");
+            String sql = "";
+            if (isCompany) {
+                sql = "SELECT * FROM `" + db + "`.`contractors` WHERE  isCompany=1;";
+            } else {
+                sql = "SELECT * FROM `" + db + "`.`contractors` WHERE  isCompany!=1;";
+            }
+
+            Statement stat = databaseConnection.createStatement();
+            ResultSet resultSet = stat.executeQuery(sql);
+            while (resultSet.next()) {
+                ContractorsViewModel contractor;
+                contractor = new ContractorsViewModel(resultSet.getInt(1), resultSet.getString(11), resultSet.getString(12), resultSet.getString(5), resultSet.getString(7), resultSet.getString(8), resultSet.getString(3));
+                tableData.add(contractor);
+            }
+            resultSet.close();
+            stat.close();
+            databaseConnection.close();
+            mds.closeConnection();
+        } catch (SQLException | IOException ex) {
+            Logger.getLogger(ContractorsViewController.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+}
